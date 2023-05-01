@@ -81,7 +81,7 @@ def dfs_limitado(grafo, origen, destino, profundidad_limite):
     visitados = set()
     pila = [(origen, [origen])]
     while pila:
-        time.sleep(0.5)
+        time.sleep(0.1)
         (vertice, camino) = pila.pop()
         if vertice == destino:
             for i in camino[::-1]:

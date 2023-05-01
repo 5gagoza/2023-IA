@@ -105,55 +105,79 @@ def bfs(graph, start, goal):
 
     return None
 
-def bidirectional_bfs(graph, start, end):
-    forward_queue = deque([(start, [])])
-    backward_queue = deque([(end, [])])
-
-    forward_visited = set()
-    backward_visited = set()
-
+def bidirectional_bfs(graph, start, goal):
+    # inicializamos las búsquedas
+    forward_queue = deque([start])
+    backward_queue = deque([goal])
+    forward_visited = {start: None}
+    backward_visited = {goal: None}
+    
+    # mientras ambas búsquedas no se hayan encontrado
     while forward_queue and backward_queue:
         time.sleep(0.05)
-        forward_node, forward_path = forward_queue.popleft()
-        backward_node, backward_path = backward_queue.popleft()
-        #print(forward_node)
-        if forward_node in backward_visited:
-            for i in forward_path + backward_path[::-1]:
-                time.sleep(0.05)
-                maze[i[0]][i[1]] = 4
-                draw_grid(maze)
-            return forward_path + backward_path[::-1]
-
-        if backward_node in forward_visited:
-            for i in backward_path + forward_path[::-1]:
-                time.sleep(0.05)
-                maze[i[0]][i[1]] = 4
-                draw_grid(maze)
-            return backward_path + forward_path[::-1]
-
-        forward_visited.add(forward_node)
-        backward_visited.add(backward_node)
-
-        maze[forward_node[0]][forward_node[1]] = 2
-        maze[backward_node[0]][backward_node[1]] = 2
-        
-        if forward_node == Start:
-              maze[forward_node[0]][forward_node[1]] = 9
-        if backward_node == Goal:
-              maze[backward_node[0]][backward_node[1]] = 8 
-
-        for neighbor in graph[forward_node]:
+        # avanzamos la búsqueda hacia adelante
+        current = forward_queue.popleft()
+        maze[current[0]][current[1]] = 2
+        for neighbor in graph[current]:
             if neighbor not in forward_visited:
-                forward_queue.extend([(neighbor, forward_path + [neighbor])])
                 maze[neighbor[0]][neighbor[1]] = 3
-                
-        for neighbor in graph[backward_node]:
+                forward_visited[neighbor] = current
+                forward_queue.append(neighbor)
+            # si encontramos un nodo visitado por la búsqueda hacia atrás
+            if neighbor in backward_visited:
+                #print('------')
+                #print('N', neighbor)
+                #print('C', current)
+                #print('F', forward_visited)
+                #print('B', backward_visited)
+                return get_path(forward_visited, backward_visited, current, neighbor)
+        
+        if current == Start:
+              maze[current[0]][current[1]] = 9
+              
+        # avanzamos la búsqueda hacia atrás
+        current = backward_queue.popleft()
+        maze[current[0]][current[1]] = 2
+        for neighbor in graph[current]:
             if neighbor not in backward_visited:
-                backward_queue.extend([(neighbor, backward_path + [neighbor])])
                 maze[neighbor[0]][neighbor[1]] = 3
-        draw_grid(maze) 
+                backward_visited[neighbor] = current
+                backward_queue.append(neighbor)
+            # si encontramos un nodo visitado por la búsqueda hacia adelante
+            if neighbor in forward_visited:
+                #print('N', neighbor)
+                #print('C', current)
+                #print('F', forward_visited)
+                #print('B', backward_visited)
+                return get_path(forward_visited, backward_visited, neighbor, current)
+
+        if current == Goal:
+              maze[current[0]][current[1]] = 8
+        # Dibujar la cuadrícula
+        draw_grid(maze)
+        
+    # si no hay camino, retornamos None
     return None
 
+def get_path(forward_visited, backward_visited, forward_node, backward_node):
+    # reconstruimos el camino desde el nodo inicial al final
+    path = [forward_node]
+    while forward_node != None: #backward_node:
+        time.sleep(0.5)
+        maze[forward_node[0]][forward_node[1]] = 4
+        forward_node = forward_visited.get(forward_node, None)
+        #print(forward_node, backward_node)
+        path.append(forward_node)
+        draw_grid(maze)
+    path.reverse()
+    # continuamos el camino desde el nodo final al inicial
+    while backward_node != None:
+        time.sleep(0.5)
+        maze[backward_node[0]][backward_node[1]] = 4
+        path.append(backward_node)
+        backward_node = backward_visited.get(backward_node, None)
+        draw_grid(maze)
+    return path
 
 # Dibujar la cuadrícula
 def draw_grid(maze):
