@@ -60,50 +60,36 @@ def maze_to_graph(maze):
                     G.add_edge(node, neighbor, weight = random.randrange(1, 100))
     return G
 
-def greedy_search(graph, start_node, goal_node):
-    """Función para realizar la búsqueda voraz en un grafo."""
-    
-    visited_nodes = set()  # Conjunto de nodos visitados
-    current_node = start_node  # Nodo actual es el nodo inicial
-    
-    while current_node != goal_node:
+def greedy_search(graph, start, goal):
+    visited = [start]
+    unvisited = []
+    path = [start]
+    while path:
         time.sleep(0.05)
-        maze[current_node[0]][current_node[1]] = 2
-        if current_node == Start:
-            maze[current_node[0]][current_node[1]] = 9 
+        current_node = path[-1]
+        if current_node == goal:
+            for n in path:
+                time.sleep(0.05)
+                maze[n[0]][n[1]] = 4
+                draw_grid(maze)
+            return path
+        neighbors = list(graph.neighbors(current_node))
+        unvisited = [n for n in neighbors if n not in visited]
+        for n in unvisited:
+            maze[n[0]][n[1]] = 3
+        if not unvisited:
+            path.pop()
+        else:
+            # Obtiene el vecino con el peso más bajo.
+            next_node = min(unvisited, key=lambda x: graph[current_node][x]['weight'])
+            visited.append(next_node)
+            path.append(next_node)
+            maze[next_node[0]][next_node[1]] = 2
         draw_grid(maze)
-        visited_nodes.add(current_node)  # Añade el nodo actual a los nodos visitados
-        neighbors = graph[current_node]  # Obtiene los vecinos del nodo actual
-        heuristic_values = {node: heuristic(node, goal_node) for node in neighbors if node not in visited_nodes}  # Calcula el valor heurístico para cada vecino no visitado
-        #print(heuristic_values)
-        for i in heuristic_values:
-            time.sleep(0.05)
-            maze[i[0]][i[1]] = 3
-            draw_grid(maze)
-        if not heuristic_values:  # Si no hay vecinos no visitados, la búsqueda termina sin éxito
-            return None
-        current_node = min(heuristic_values, key=heuristic_values.get)  # Elige el vecino con menor valor heurístico como nuevo nodo actual
-        time.sleep(0.5)
-        maze[current_node[0]][current_node[1]] = 4
-        # Dibujar la cuadrícula
-        draw_grid(maze)
-    visited_nodes.add(current_node)  # Añade el nodo objetivo a los nodos visitados
-    
-    for i in visited_nodes:
-        time.sleep(0.5)
-        maze[i[0]][i[1]] = 4
-        # Dibujar la cuadrícula
-        draw_grid(maze)
-        
-    return visited_nodes  # Devuelve el conjunto de nodos visitados
-
-def heuristic(node, goal_node):
-    node_x, node_y = node
-    goal_x, goal_y = goal_node
-    return abs(node_x - goal_x) + abs(node_y - goal_y)
-
+    return None
 # Dibujar la cuadrícula
 def draw_grid(maze):
+    font = pygame.font.SysFont(None, 30)  # Crea una fuente de texto
     for row in range(len(maze)):
         for col in range(len(maze[0])):
             if maze[row][col] == 9:
