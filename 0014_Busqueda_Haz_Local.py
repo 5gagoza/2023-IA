@@ -76,5 +76,5 @@ def plot_tour(tour, cities):
 cities = [(0, 0), (1, 2), (3, 1), (5, 4), (2, 7)]
 best_tour = local_beam_search(cities, k=3, max_iter=1000)
 print(best_tour)
-plot_tour(best_tour, cities)
+#plot_tour(best_tour, cities)
 
