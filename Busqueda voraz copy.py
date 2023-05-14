@@ -5,6 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
 from queue import PriorityQueue
+import heapq
 
 # Definir las constantes de la pantalla
 SCREEN_WIDTH = 800
@@ -57,42 +58,64 @@ def maze_to_graph(maze):
                 if maze[i][j + 1] == 0:
                     neighbors.append((i, j + 1))
                 for neighbor in neighbors:
-                    G.add_edge(node, neighbor, weight = 1)
+                    G.add_edge(node, neighbor, weight = random.randrange(1, 100))
     return G
 
-# Definimos la función que realizará la búsqueda en anchura de costo uniforme
-def ucs(graph, start, goal):
-    frontier = PriorityQueue()  # cola de prioridad
-    frontier.put((0, start, [start]))  # insertamos el nodo inicial con costo 0 y ruta [start]
-    explored = set()  # conjunto de nodos explorados
-    while not frontier.empty():  # mientras la cola de prioridad no esté vacía
-        time.sleep(0.05)
-        cost, current, path = frontier.get()  # sacamos el nodo con menor costo acumulado
-        if current == goal:  # si encontramos el objetivo, retornamos la ruta
-            for i in path[::-1]:
-                time.sleep(0.05)
-                maze[i[0]][i[1]] = 4
-                draw_grid(maze)
-            return path
-        if current not in explored:  # si el nodo no ha sido explorado
-            explored.add(current)  # lo marcamos como explorado
-            maze[current[0]][current[1]] = 2
-            if current == Start:
-              maze[current[0]][current[1]] = 9
-            for neighbor in graph.neighbors(current):  # para cada vecino del nodo actual
-                if neighbor not in explored:  # si el vecino no ha sido explorado
-                    maze[neighbor[0]][neighbor[1]] = 3
-                    new_cost = cost + graph.edges[(current, neighbor)]['weight']
-                    new_path = path + [neighbor]
-                    frontier.put((new_cost, neighbor, new_path))
-        # Dibujar la cuadrícula
-        draw_grid(maze)
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                #pygame.quit()
-                return
-    return None  # no se encontró una ruta hasta el objetivo
+import heapq
+
+def a_star_search(graph, start, goal):
+    """
+    Realiza una búsqueda de camino en un grafo utilizando el algoritmo A*.
+    graph: un diccionario de listas de adyacencia que representa el grafo
+    start: el nodo inicial
+    goal: el nodo objetivo
+    heuristic_fn: una función heurística que estima el costo restante desde un nodo hasta el objetivo
+    """
+    # Creamos un conjunto de nodos explorados y un diccionario para realizar el seguimiento de los costos
+    explored = set()
+    cost_so_far = {start: 0}
+    came_from = {start: None}
+    # Creamos una cola de prioridad para los nodos por explorar, con el nodo inicial como el primero
+    frontier = [(heuristic_fn(start, goal), start)]
+    
+    while frontier:
+        # Sacamos el nodo de la cola de prioridad que tenga el menor costo total estimado (f)
+        _, current = heapq.heappop(frontier)
+        # Si hemos llegado al objetivo, devolvemos el camino
+        if current == goal:
+            path = []
+            while current != start:
+                path.append(current)
+                current = came_from[current]
+            path.append(start)
+            path.reverse()
+            return path, cost_so_far[goal]
+        # Marcamos el nodo actual como explorado
+        explored.add(current)
+        # Para cada vecino del nodo actual
+        for neighbor, cost in graph[current]:
+            # Si el vecino ya ha sido explorado, lo ignoramos
+            if neighbor in explored:
+                continue
+            # Calculamos el costo actual para llegar al vecino desde el nodo inicial
+            new_cost = cost_so_far[current] + cost
+            # Si el vecino no está en la cola de prioridad o si el nuevo costo es menor que el costo anterior
+            if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                # Actualizamos el costo y el nodo padre del vecino
+                cost_so_far[neighbor] = new_cost
+                # Actualizamos la cola de prioridad con el nuevo costo total estimado (f)
+                priority = new_cost + heuristic_fn(neighbor, goal)
+                heapq.heappush(frontier, (priority, neighbor))
+    
+    # Si no se encuentra un camino al objetivo, devolvemos None
+    return None, None
+
+
+def heuristic_fn(node, goal_node):
+    node_x, node_y = node
+    goal_x, goal_y = goal_node
+    return abs(node_x - goal_x) + abs(node_y - goal_y)
+
 # Dibujar la cuadrícula
 def draw_grid(maze):
     for row in range(len(maze)):
@@ -133,8 +156,8 @@ Goal = list(G.nodes())[random.randrange(1, G.number_of_nodes())]
 
 maze[Start[0]][Start[1]] = 9
 maze[Goal[0]][Goal[1]] = 8
-
-path = ucs(G, Start, Goal)
+    
+path = a_star_search(G, Start, Goal)
 
 if path:
     print('Camino encontrado desde {} hasta {}: {}'.format(Start, Goal, path))

@@ -57,42 +57,51 @@ def maze_to_graph(maze):
                 if maze[i][j + 1] == 0:
                     neighbors.append((i, j + 1))
                 for neighbor in neighbors:
-                    G.add_edge(node, neighbor, weight = 1)
+                    G.add_edge(node, neighbor, weight = random.randrange(1, 100))
     return G
 
-# Definimos la función que realizará la búsqueda en anchura de costo uniforme
-def ucs(graph, start, goal):
-    frontier = PriorityQueue()  # cola de prioridad
-    frontier.put((0, start, [start]))  # insertamos el nodo inicial con costo 0 y ruta [start]
-    explored = set()  # conjunto de nodos explorados
-    while not frontier.empty():  # mientras la cola de prioridad no esté vacía
+def greedy_search(graph, start_node, goal_node):
+    """Función para realizar la búsqueda voraz en un grafo."""
+    
+    visited_nodes = set()  # Conjunto de nodos visitados
+    current_node = start_node  # Nodo actual es el nodo inicial
+    
+    while current_node != goal_node:
         time.sleep(0.05)
-        cost, current, path = frontier.get()  # sacamos el nodo con menor costo acumulado
-        if current == goal:  # si encontramos el objetivo, retornamos la ruta
-            for i in path[::-1]:
-                time.sleep(0.05)
-                maze[i[0]][i[1]] = 4
-                draw_grid(maze)
-            return path
-        if current not in explored:  # si el nodo no ha sido explorado
-            explored.add(current)  # lo marcamos como explorado
-            maze[current[0]][current[1]] = 2
-            if current == Start:
-              maze[current[0]][current[1]] = 9
-            for neighbor in graph.neighbors(current):  # para cada vecino del nodo actual
-                if neighbor not in explored:  # si el vecino no ha sido explorado
-                    maze[neighbor[0]][neighbor[1]] = 3
-                    new_cost = cost + graph.edges[(current, neighbor)]['weight']
-                    new_path = path + [neighbor]
-                    frontier.put((new_cost, neighbor, new_path))
+        maze[current_node[0]][current_node[1]] = 2
+        if current_node == Start:
+            maze[current_node[0]][current_node[1]] = 9 
+        draw_grid(maze)
+        visited_nodes.add(current_node)  # Añade el nodo actual a los nodos visitados
+        neighbors = graph[current_node]  # Obtiene los vecinos del nodo actual
+        heuristic_values = {node: heuristic(node, goal_node) for node in neighbors if node not in visited_nodes}  # Calcula el valor heurístico para cada vecino no visitado
+        #print(heuristic_values)
+        for i in heuristic_values:
+            time.sleep(0.05)
+            maze[i[0]][i[1]] = 3
+            draw_grid(maze)
+        if not heuristic_values:  # Si no hay vecinos no visitados, la búsqueda termina sin éxito
+            return None
+        current_node = min(heuristic_values, key=heuristic_values.get)  # Elige el vecino con menor valor heurístico como nuevo nodo actual
+        time.sleep(0.5)
+        maze[current_node[0]][current_node[1]] = 4
+        # Dibujar la cuadrícula
+        draw_grid(maze)
+    visited_nodes.add(current_node)  # Añade el nodo objetivo a los nodos visitados
+    
+    for i in visited_nodes:
+        time.sleep(0.5)
+        maze[i[0]][i[1]] = 4
         # Dibujar la cuadrícula
         draw_grid(maze)
         
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                #pygame.quit()
-                return
-    return None  # no se encontró una ruta hasta el objetivo
+    return visited_nodes  # Devuelve el conjunto de nodos visitados
+
+def heuristic(node, goal_node):
+    node_x, node_y = node
+    goal_x, goal_y = goal_node
+    return abs(node_x - goal_x) + abs(node_y - goal_y)
+
 # Dibujar la cuadrícula
 def draw_grid(maze):
     for row in range(len(maze)):
@@ -133,8 +142,8 @@ Goal = list(G.nodes())[random.randrange(1, G.number_of_nodes())]
 
 maze[Start[0]][Start[1]] = 9
 maze[Goal[0]][Goal[1]] = 8
-
-path = ucs(G, Start, Goal)
+    
+path = greedy_search(G, Start, Goal)
 
 if path:
     print('Camino encontrado desde {} hasta {}: {}'.format(Start, Goal, path))
